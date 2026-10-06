@@ -8,6 +8,7 @@ renamed as (
 
     select
         id as name_id,
+        user_id,
         first_name,
         last_name,
         full_name,

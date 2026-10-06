@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: customer_sales
+    description: Customers (from the name generator) joined to their sales transactions.
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+      - name: transaction_id
+        tests:
+          - unique
+          - not_null
+
+  - name: customer_sales_summary
+    description: Per-customer aggregate sales metrics.
+    columns:
+      - name: user_id
+        tests:
+          - unique
+          - not_null
+      - name: lifetime_value
+        tests:
+          - not_null

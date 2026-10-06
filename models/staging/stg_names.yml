@@ -9,6 +9,11 @@ models:
         tests:
           - unique
           - not_null
+      - name: user_id
+        description: Stable UUID customer identifier, joined against stg_sales_transactions.
+        tests:
+          - unique
+          - not_null
       - name: email
         tests:
           - unique

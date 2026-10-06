@@ -6,10 +6,14 @@ with [Faker](https://faker.readthedocs.io/)) loaded and transformed in
 
 ## Project layout
 
-- `scripts/generate_names.py` — generates fake name records and writes them to `seeds/raw_names.csv`.
-- `seeds/raw_names.csv` — the raw sample data, loaded into DuckDB via `dbt seed`.
-- `models/staging/stg_names.sql` — cleaned/typed view over the raw seed.
-- `models/marts/names_summary_by_state.sql` — aggregated summary table.
+- `scripts/generate_names.py` — generates fake "customer" records (each with a distinct `user_id` UUID) and writes them to `seeds/raw_names.csv`.
+- `scripts/generate_sales_transactions.py` — generates synthetic sales transactions (modeled loosely on the Wide World Importers sample) referencing `user_id` from `raw_names.csv`, written to `seeds/raw_sales_transactions.csv`.
+- `sql/add_user_id_column.sql` — standalone migration script to add/backfill the `user_id` column on an existing `raw_names` table (idempotent; new data generated via `generate_names.py` already includes it).
+- `seeds/raw_names.csv`, `seeds/raw_sales_transactions.csv` — the raw sample data, loaded into DuckDB via `dbt seed`.
+- `models/staging/stg_names.sql`, `models/staging/stg_sales_transactions.sql` — cleaned/typed views over the raw seeds.
+- `models/marts/names_summary_by_state.sql` — aggregated name demographics.
+- `models/marts/customer_sales.sql` — customers joined to their sales transactions via `user_id`.
+- `models/marts/customer_sales_summary.sql` — per-customer lifetime value, order count, etc.
 - `data/name_generator.duckdb` — the DuckDB database file (created on first run, git-ignored).
 - `profiles.yml` — dbt connection profile pointing at the local DuckDB file.
 
@@ -23,9 +27,12 @@ python -m pip install dbt-duckdb duckdb Faker
 
 ```bash
 python scripts/generate_names.py --rows 1000 --seed 42
+python scripts/generate_sales_transactions.py --rows 5000 --seed 42
 ```
 
 Run with a different `--rows`/`--seed` any time to produce a new sample set.
+`generate_sales_transactions.py` requires `seeds/raw_names.csv` to already
+exist, since every transaction references a `user_id` from that file.
 
 ## Load and build with dbt
 

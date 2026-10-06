@@ -18,10 +18,11 @@
 
 $ErrorActionPreference = "Stop"
 
-$ProjectDir = Split-Path -Parent $PSScriptRoot
-$LogDir     = Join-Path $ProjectDir "logs"
-$LogFile    = Join-Path $LogDir "daily_run.log"
-$RowCount   = 1000
+$ProjectDir      = Split-Path -Parent $PSScriptRoot
+$LogDir          = Join-Path $ProjectDir "logs"
+$LogFile         = Join-Path $LogDir "daily_run.log"
+$NameRowCount    = 1000
+$SalesRowCount   = 5000
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
@@ -52,8 +53,11 @@ Set-Location $ProjectDir
 
 Write-Log "===== Daily run started ====="
 try {
-    Invoke-Step -Name "Generate $RowCount names" -Exe "python" `
-        -ArgumentList @("scripts/generate_names.py", "--rows", "$RowCount")
+    Invoke-Step -Name "Generate $NameRowCount names" -Exe "python" `
+        -ArgumentList @("scripts/generate_names.py", "--rows", "$NameRowCount")
+
+    Invoke-Step -Name "Generate $SalesRowCount sales transactions" -Exe "python" `
+        -ArgumentList @("scripts/generate_sales_transactions.py", "--rows", "$SalesRowCount")
 
     Invoke-Step -Name "dbt seed" -Exe "dbt" `
         -ArgumentList @("seed", "--profiles-dir", ".", "--full-refresh")

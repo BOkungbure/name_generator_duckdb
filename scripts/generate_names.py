@@ -11,6 +11,7 @@ to refresh/update the sample data.
 import argparse
 import csv
 import random
+import uuid
 from pathlib import Path
 
 from faker import Faker
@@ -31,9 +32,14 @@ def generate_rows(num_rows: int, seed: int) -> list[dict]:
         gender = random.choice(GENDERS)
         first_name = fake.first_name_female() if gender == "female" else fake.first_name_male()
         last_name = fake.last_name()
+        # Deterministic (seeded) UUID so the same --seed always reproduces the
+        # same user_id values; used as the stable customer key joined against
+        # the sales_transactions table.
+        user_id = str(uuid.UUID(int=random.getrandbits(128), version=4))
         rows.append(
             {
                 "id": row_id,
+                "user_id": user_id,
                 "first_name": first_name,
                 "last_name": last_name,
                 "full_name": f"{first_name} {last_name}",

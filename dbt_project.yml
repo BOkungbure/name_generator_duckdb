@@ -20,8 +20,17 @@ seeds:
     raw_names:
       +column_types:
         id: integer
+        user_id: uuid
         birthdate: date
         created_at: timestamp
+    raw_sales_transactions:
+      +column_types:
+        transaction_id: integer
+        user_id: uuid
+        order_date: timestamp
+        quantity: integer
+        unit_price: decimal(10,2)
+        total_amount: decimal(10,2)
 
 models:
   name_generator:

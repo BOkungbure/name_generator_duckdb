@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: stg_sales_transactions
+    description: >
+      Synthetic sales transactions modeled loosely on the Wide World
+      Importers sample, each tied to a customer via user_id.
+    columns:
+      - name: transaction_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: Customer identifier, references stg_names.user_id.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_names')
+                field: user_id
+      - name: total_amount
+        tests:
+          - not_null
