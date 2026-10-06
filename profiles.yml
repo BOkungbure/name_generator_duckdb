@@ -1,0 +1,7 @@
+name_generator:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: 'data/name_generator.duckdb'
+      threads: 4

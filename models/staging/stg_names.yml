@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: stg_names
+    description: Cleaned, typed view over the raw generated names seed.
+    columns:
+      - name: name_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: email
+        tests:
+          - unique
+          - not_null

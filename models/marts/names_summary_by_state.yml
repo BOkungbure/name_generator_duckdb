@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: names_summary_by_state
+    description: Count and average age of generated names, grouped by state and gender.
+    columns:
+      - name: state
+        tests:
+          - not_null
+      - name: gender
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['female', 'male']

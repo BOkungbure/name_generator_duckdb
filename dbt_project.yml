@@ -1,0 +1,31 @@
+name: 'name_generator'
+version: '1.0.0'
+config-version: 2
+
+profile: 'name_generator'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+seeds:
+  name_generator:
+    raw_names:
+      +column_types:
+        id: integer
+        birthdate: date
+        created_at: timestamp
+
+models:
+  name_generator:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
