@@ -59,6 +59,37 @@ dbt run --profiles-dir .
 dbt test --profiles-dir .
 ```
 
+## Scheduling a daily refresh (Windows Task Scheduler)
+
+Windows has no native `cron`, so the equivalent is Task Scheduler. Two scripts
+automate this:
+
+- `scripts/daily_run.ps1` — generates 1000 new names, runs `dbt seed --full-refresh`,
+  then `dbt build` (run + test). Logs every step with a timestamp to `logs/daily_run.log`
+  and exits non-zero on failure so Task Scheduler reports the run as failed.
+- `scripts/register_scheduled_task.ps1` — registers a Windows Scheduled Task
+  that runs `daily_run.ps1` every morning.
+
+### One-time setup
+
+```powershell
+cd name_generator_duckdb
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\register_scheduled_task.ps1 -Time 07:00
+```
+
+This creates a task named `NameGeneratorDbtDailyRun` that runs daily at 07:00 local time.
+
+### Managing the task
+
+```powershell
+Get-ScheduledTask -TaskName 'NameGeneratorDbtDailyRun'
+Get-ScheduledTaskInfo -TaskName 'NameGeneratorDbtDailyRun'   # last run time/result, next run time
+Start-ScheduledTask -TaskName 'NameGeneratorDbtDailyRun'     # trigger it manually
+Unregister-ScheduledTask -TaskName 'NameGeneratorDbtDailyRun' -Confirm:$false  # remove it
+```
+
+Re-run `register_scheduled_task.ps1` with a different `-Time` to change the schedule.
+
 ## Querying the result
 
 ```bash
