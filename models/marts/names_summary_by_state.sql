@@ -1,3 +1,5 @@
+-- Mart: demographic rollup of stg_names by state and gender. One row per
+-- (state, gender) combination present in the data.
 with names as (
 
     select * from {{ ref('stg_names') }}

@@ -7,12 +7,12 @@ models:
       Importers sample, each tied to a customer via user_id.
     columns:
       - name: transaction_id
-        description: Primary key.
+        description: "{{ doc('transaction_id') }}"
         tests:
           - unique
           - not_null
       - name: user_id
-        description: Customer identifier, references stg_names.user_id.
+        description: "{{ doc('user_id') }}"
         tests:
           - not_null
           - relationships:
@@ -20,5 +20,8 @@ models:
                 to: ref('stg_names')
                 field: user_id
       - name: total_amount
+        description: "{{ doc('total_amount') }}"
         tests:
           - not_null
+      - name: region
+        description: "{{ doc('region') }}"

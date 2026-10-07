@@ -2,19 +2,27 @@ version: 2
 
 models:
   - name: stg_names
-    description: Cleaned, typed view over the raw generated names seed.
+    description: >
+      Cleaned, typed 1:1 view over the raw_names seed. One row per
+      synthetic customer. This is the "customer dimension" that
+      stg_sales_transactions joins against via user_id.
     columns:
       - name: name_id
-        description: Primary key.
+        description: "{{ doc('name_id') }}"
         tests:
           - unique
           - not_null
       - name: user_id
-        description: Stable UUID customer identifier, joined against stg_sales_transactions.
+        description: "{{ doc('user_id') }}"
         tests:
           - unique
           - not_null
+      - name: full_name
+        description: "{{ doc('full_name') }}"
       - name: email
+        description: "{{ doc('email') }}"
         tests:
           - unique
           - not_null
+      - name: age
+        description: "{{ doc('age') }}"

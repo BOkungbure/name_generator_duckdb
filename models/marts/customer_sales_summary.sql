@@ -1,3 +1,6 @@
+-- Mart: customer-grain aggregation on top of customer_sales. One row per
+-- user_id, summarizing their full purchase history (lifetime value, order
+-- count, first/last order dates). Powers "top customers" style reporting.
 with customer_sales as (
 
     select * from {{ ref('customer_sales') }}
@@ -12,6 +15,7 @@ select
     country,
     count(transaction_id) as transaction_count,
     sum(quantity) as total_items_purchased,
+    -- Core "how much has this customer spent" metric.
     round(sum(total_amount), 2) as lifetime_value,
     round(avg(total_amount), 2) as avg_order_value,
     min(order_date) as first_order_date,

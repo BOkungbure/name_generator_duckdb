@@ -2,11 +2,19 @@ version: 2
 
 models:
   - name: names_summary_by_state
-    description: Count and average age of generated names, grouped by state and gender.
+    description: >
+      Demographic rollup of stg_names: count of customers and their
+      average age, grouped by state and gender. One row per
+      (state, gender) combination present in the data.
     columns:
       - name: state
+        description: US state the customer is associated with (from Faker's generated address).
         tests:
           - not_null
+      - name: name_count
+        description: Number of customers in this state/gender group.
+      - name: avg_age
+        description: Average customer age (see age column doc on stg_names) within this state/gender group, rounded to 1 decimal place.
       - name: gender
         tests:
           - not_null

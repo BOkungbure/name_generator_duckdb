@@ -1,104 +1,104 @@
-# name_generator_duckdb
+# Name Generator → Sales Analytics (dbt + DuckDB)
 
-A sample "name generator" dataset (fake names, emails, demographics generated
-with [Faker](https://faker.readthedocs.io/)) loaded and transformed in
-[DuckDB](https://duckdb.org/) using [dbt](https://www.getdbt.com/).
+**Portfolio project** demonstrating an end-to-end analytics engineering
+workflow: synthetic data generation, a version-controlled dbt project,
+automated daily orchestration, and tested, documented data models — all
+running on a free, local stack (no cloud warehouse required).
+
+## What this demonstrates
+
+- **Data modeling with dbt** — staging → mart layering, `ref()`-based
+  lineage, YAML-documented schemas, and automated data tests
+  (`unique`, `not_null`, `accepted_values`, `relationships`).
+- **SQL** — a standalone migration script (`sql/add_user_id_column.sql`)
+  that adds and backfills a new primary key column on an existing table.
+- **Python** — reproducible, seeded synthetic data generation with
+  [Faker](https://faker.readthedocs.io/) (customers + sales transactions
+  modeled loosely on Microsoft's Wide World Importers sample).
+- **Pipeline orchestration** — a scheduled job (Windows Task Scheduler)
+  that regenerates data and runs `dbt build` every morning, with logging
+  and failure handling.
+- **Data warehousing basics** — [DuckDB](https://duckdb.org/) as a
+  lightweight, file-based analytical database, with a dimensional-style
+  customer ↔ sales join and aggregate summary tables.
+
+## Architecture
+
+```
+Faker (Python) ──► seeds/*.csv ──► dbt seed ──► DuckDB tables
+                                                     │
+                                        dbt staging models (views)
+                                                     │
+                                        dbt mart models (tables)
+                                                     │
+                                   customer_sales / customer_sales_summary
+```
+
+Each generated "name" record gets a stable `user_id` (UUID), which is used
+to join it against a synthetic `sales_transactions` table — simulating a
+customer purchase history use case.
 
 ## Project layout
 
-- `scripts/generate_names.py` — generates fake "customer" records (each with a distinct `user_id` UUID) and writes them to `seeds/raw_names.csv`.
-- `scripts/generate_sales_transactions.py` — generates synthetic sales transactions (modeled loosely on the Wide World Importers sample) referencing `user_id` from `raw_names.csv`, written to `seeds/raw_sales_transactions.csv`.
-- `sql/add_user_id_column.sql` — standalone migration script to add/backfill the `user_id` column on an existing `raw_names` table (idempotent; new data generated via `generate_names.py` already includes it).
-- `seeds/raw_names.csv`, `seeds/raw_sales_transactions.csv` — the raw sample data, loaded into DuckDB via `dbt seed`.
-- `models/staging/stg_names.sql`, `models/staging/stg_sales_transactions.sql` — cleaned/typed views over the raw seeds.
-- `models/marts/names_summary_by_state.sql` — aggregated name demographics.
-- `models/marts/customer_sales.sql` — customers joined to their sales transactions via `user_id`.
-- `models/marts/customer_sales_summary.sql` — per-customer lifetime value, order count, etc.
-- `data/name_generator.duckdb` — the DuckDB database file (created on first run, git-ignored).
-- `profiles.yml` — dbt connection profile pointing at the local DuckDB file.
+| Path | Purpose |
+|---|---|
+| `scripts/generate_names.py` | Generates fake customer records (`user_id`, name, email, demographics) |
+| `scripts/generate_sales_transactions.py` | Generates synthetic sales transactions tied to a `user_id` |
+| `sql/add_user_id_column.sql` | SQL migration: adds/backfills `user_id` on an existing table |
+| `seeds/` | Raw CSV data loaded into DuckDB via `dbt seed` |
+| `models/staging/` | Cleaned/typed views over raw seeds |
+| `models/marts/` | Business-facing tables: demographic summaries, customer-sales join, lifetime value |
+| `scripts/daily_run.ps1` | Daily automation: regenerate data → `dbt build` |
+| `scripts/register_scheduled_task.ps1` | Registers the Windows Task Scheduler job |
+| `data/name_generator.duckdb` | The DuckDB database file (git-ignored) |
 
-## Setup
+## Try it yourself
 
 ```bash
 python -m pip install dbt-duckdb duckdb Faker
-```
 
-## Generate / refresh the sample data
-
-```bash
+cd name_generator_duckdb
 python scripts/generate_names.py --rows 1000 --seed 42
 python scripts/generate_sales_transactions.py --rows 5000 --seed 42
-```
 
-Run with a different `--rows`/`--seed` any time to produce a new sample set.
-`generate_sales_transactions.py` requires `seeds/raw_names.csv` to already
-exist, since every transaction references a `user_id` from that file.
-
-## Load and build with dbt
-
-All commands below use `--profiles-dir .` so dbt picks up the `profiles.yml`
-in this project folder instead of `~/.dbt/profiles.yml`.
-
-```bash
-cd name_generator_duckdb
-
-# install dbt packages (dbt_utils, if added later)
 dbt deps --profiles-dir .
-
-# load/refresh seeds/raw_names.csv into DuckDB
-dbt seed --profiles-dir . --full-refresh
-
-# build the staging + mart models
-dbt run --profiles-dir .
-
-# run the data tests (uniqueness, not_null, accepted_values)
-dbt test --profiles-dir .
+dbt build --profiles-dir .      # seeds + runs models + runs tests
 ```
 
-## End-to-end refresh
-
-To regenerate a new sample set and rebuild everything in one go:
+Query the result:
 
 ```bash
-python scripts/generate_names.py --rows 1000
-dbt seed --profiles-dir . --full-refresh
-dbt run --profiles-dir .
-dbt test --profiles-dir .
+python -c "import duckdb; print(duckdb.connect('data/name_generator.duckdb').sql('select * from customer_sales_summary order by lifetime_value desc limit 10'))"
 ```
 
-## Scheduling a daily refresh (Windows Task Scheduler)
+## Daily automation (Windows Task Scheduler)
 
-Windows has no native `cron`, so the equivalent is Task Scheduler. Two scripts
-automate this:
-
-- `scripts/daily_run.ps1` — generates 1000 new names, runs `dbt seed --full-refresh`,
-  then `dbt build` (run + test). Logs every step with a timestamp to `logs/daily_run.log`
-  and exits non-zero on failure so Task Scheduler reports the run as failed.
-- `scripts/register_scheduled_task.ps1` — registers a Windows Scheduled Task
-  that runs `daily_run.ps1` every morning.
-
-### One-time setup
+`scripts/daily_run.ps1` regenerates 1,000 customers + 5,000 transactions and
+runs `dbt build` end to end, logging to `logs/daily_run.log`. Register it
+once with:
 
 ```powershell
-cd name_generator_duckdb
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\register_scheduled_task.ps1 -Time 07:00
 ```
 
-This creates a task named `NameGeneratorDbtDailyRun` that runs daily at 07:00 local time.
+Manage it with `Get-ScheduledTask`, `Start-ScheduledTask`, or
+`Unregister-ScheduledTask -TaskName 'NameGeneratorDbtDailyRun'`.
 
-### Managing the task
+## dbt documentation
 
-```powershell
-Get-ScheduledTask -TaskName 'NameGeneratorDbtDailyRun'
-Get-ScheduledTaskInfo -TaskName 'NameGeneratorDbtDailyRun'   # last run time/result, next run time
-Start-ScheduledTask -TaskName 'NameGeneratorDbtDailyRun'     # trigger it manually
-Unregister-ScheduledTask -TaskName 'NameGeneratorDbtDailyRun' -Confirm:$false  # remove it
-```
+Every model and column is documented via YAML `description:` fields and
+centralized Jinja doc blocks (`models/docs.md`), plus inline SQL comments
+explaining non-obvious logic (derived columns, join types, FK relationships).
 
-Re-run `register_scheduled_task.ps1` with a different `-Time` to change the schedule.
-
-## Querying the result
+Generate and browse the interactive docs site (lineage graph, column
+descriptions, test coverage) with:
 
 ```bash
-python -c "import duckdb; print(duckdb.connect('data/name_generator.duckdb').sql('select * from names_summary_by_state limit 10'))"
+dbt docs generate --profiles-dir .
+dbt docs serve --profiles-dir .
 ```
+
+## Note on the data
+
+All data is synthetically generated with Faker — no real personal
+information is used anywhere in this project.

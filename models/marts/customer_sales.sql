@@ -1,3 +1,10 @@
+-- Mart: row-level join between customers (stg_names) and their sales
+-- transactions (stg_sales_transactions) on user_id.
+--
+-- NOTE: this is an INNER JOIN, so customers with zero transactions are
+-- intentionally excluded here. For a full customer list including
+-- non-purchasers, join stg_names to customer_sales_summary with a LEFT JOIN
+-- instead.
 with customers as (
 
     select * from {{ ref('stg_names') }}

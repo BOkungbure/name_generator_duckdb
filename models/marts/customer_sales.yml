@@ -2,23 +2,41 @@ version: 2
 
 models:
   - name: customer_sales
-    description: Customers (from the name generator) joined to their sales transactions.
+    description: >
+      Row-level inner join of stg_names and stg_sales_transactions on
+      user_id. One row per sales transaction, enriched with the owning
+      customer's profile attributes. Customers with zero transactions are
+      excluded (see customer_sales_summary for a customer-grain view).
     columns:
       - name: user_id
+        description: "{{ doc('user_id') }}"
         tests:
           - not_null
       - name: transaction_id
+        description: "{{ doc('transaction_id') }}"
         tests:
           - unique
           - not_null
+      - name: total_amount
+        description: "{{ doc('total_amount') }}"
 
   - name: customer_sales_summary
-    description: Per-customer aggregate sales metrics.
+    description: >
+      Customer-grain aggregate built on top of customer_sales: one row per
+      user_id with lifetime value, order count, and first/last order dates.
+      This is the table a "top customers" or "customer lifetime value"
+      report would query.
     columns:
       - name: user_id
+        description: "{{ doc('user_id') }}"
         tests:
           - unique
           - not_null
+      - name: transaction_count
+        description: Total number of sales transactions linked to this customer.
       - name: lifetime_value
+        description: "{{ doc('lifetime_value') }}"
         tests:
           - not_null
+      - name: avg_order_value
+        description: Average total_amount per transaction for this customer (lifetime_value / transaction_count).
