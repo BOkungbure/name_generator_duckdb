@@ -31,23 +31,28 @@ Faker (Python) ──► seeds/*.csv ──► dbt seed ──► DuckDB tables
                                                      │
                                         dbt mart models (tables)
                                                      │
-                                   customer_sales / customer_sales_summary
+                      customer_sales ──► customer_sales_summary
+                              │
+                              └───────► product_sales_summary
 ```
 
-Each generated "name" record gets a stable `user_id` (UUID), which is used
-to join it against a synthetic `sales_transactions` table — simulating a
-customer purchase history use case.
+Each generated "name" record gets a stable `user_id` (UUID), used to join
+it against a synthetic `sales_transactions` table — simulating a customer
+purchase history use case. Each transaction also references a `product_id`
+from a small product catalog (dimension table), so product attributes
+(name/category/price) are stored once instead of repeated per transaction.
 
 ## Project layout
 
 | Path | Purpose |
 |---|---|
 | `scripts/generate_names.py` | Generates fake customer records (`user_id`, name, email, demographics) |
-| `scripts/generate_sales_transactions.py` | Generates synthetic sales transactions tied to a `user_id` |
+| `scripts/generate_products.py` | Generates a static product catalog (`product_id`, name, category, price) |
+| `scripts/generate_sales_transactions.py` | Generates synthetic sales transactions tied to a `user_id` and `product_id` |
 | `sql/add_user_id_column.sql` | SQL migration: adds/backfills `user_id` on an existing table |
 | `seeds/` | Raw CSV data loaded into DuckDB via `dbt seed` |
-| `models/staging/` | Cleaned/typed views over raw seeds |
-| `models/marts/` | Business-facing tables: demographic summaries, customer-sales join, lifetime value |
+| `models/staging/` | Cleaned/typed views over raw seeds (`stg_names`, `stg_products`, `stg_sales_transactions`) |
+| `models/marts/` | Business-facing tables: demographic summaries, customer-sales-product join, customer lifetime value, product performance |
 | `scripts/daily_run.ps1` | Daily automation: regenerate data → `dbt build` |
 | `scripts/register_scheduled_task.ps1` | Registers the Windows Task Scheduler job |
 | `data/name_generator.duckdb` | The DuckDB database file (git-ignored) |
@@ -59,6 +64,7 @@ python -m pip install dbt-duckdb duckdb Faker
 
 cd name_generator_duckdb
 python scripts/generate_names.py --rows 1000 --seed 42
+python scripts/generate_products.py
 python scripts/generate_sales_transactions.py --rows 5000 --seed 42
 
 dbt deps --profiles-dir .

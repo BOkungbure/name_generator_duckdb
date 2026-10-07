@@ -23,13 +23,15 @@ tests, and a daily-scheduled orchestration job — all backed by DuckDB.
 
 1. `scripts/generate_names.py` generates fake "customer" records, each with
    a distinct `user_id` (UUID), and writes them to `seeds/raw_names.csv`.
-2. `scripts/generate_sales_transactions.py` generates synthetic sales
-   transactions (modeled loosely on Microsoft's Wide World Importers
-   sample), each referencing a `user_id` from step 1, written to
-   `seeds/raw_sales_transactions.csv`.
-3. `dbt seed` loads both CSVs into DuckDB as raw tables.
-4. Staging models (`stg_names`, `stg_sales_transactions`) clean and type
-   the raw data.
+2. `scripts/generate_products.py` generates a static product catalog
+   (stock items modeled loosely on Microsoft's Wide World Importers
+   sample), written to `seeds/raw_products.csv`.
+3. `scripts/generate_sales_transactions.py` generates synthetic sales
+   transactions, each referencing a `user_id` from step 1 and a
+   `product_id` from step 2, written to `seeds/raw_sales_transactions.csv`.
+4. `dbt seed` loads all three CSVs into DuckDB as raw tables.
+5. Staging models (`stg_names`, `stg_products`, `stg_sales_transactions`)
+   clean and type the raw data.
 5. Mart models join and aggregate the staging layer into business-facing
    tables: `customer_sales` (row-level join) and `customer_sales_summary`
    (per-customer lifetime value).
@@ -62,6 +64,13 @@ Not stable across data regenerations — use `user_id` for joins instead.
 
 {% docs transaction_id %}
 Sequential integer primary key identifying a single sales transaction line.
+{% enddocs %}
+
+{% docs product_id %}
+Integer primary key identifying a stock item in the product catalog
+(`scripts/generate_products.py`). Used as the foreign key on every sales
+transaction so product name/category/price are stored once rather than
+repeated on each transaction row.
 {% enddocs %}
 
 {% docs full_name %}

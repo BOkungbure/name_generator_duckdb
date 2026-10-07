@@ -17,8 +17,31 @@ models:
         tests:
           - unique
           - not_null
+      - name: product_id
+        description: "{{ doc('product_id') }}"
+        tests:
+          - not_null
       - name: total_amount
         description: "{{ doc('total_amount') }}"
+
+  - name: product_sales_summary
+    description: >
+      Product-grain aggregate built on top of customer_sales: one row per
+      product_id with total revenue, units sold, and distinct customer
+      count. This is the table a "best sellers" or "product performance"
+      report would query.
+    columns:
+      - name: product_id
+        description: "{{ doc('product_id') }}"
+        tests:
+          - unique
+          - not_null
+      - name: total_revenue
+        description: Sum of total_amount across every transaction for this product.
+        tests:
+          - not_null
+      - name: distinct_customers
+        description: Count of distinct customers (user_id) who purchased this product at least once.
 
   - name: customer_sales_summary
     description: >

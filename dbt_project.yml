@@ -27,10 +27,15 @@ seeds:
       +column_types:
         transaction_id: integer
         user_id: uuid
+        product_id: integer
         order_date: timestamp
         quantity: integer
         unit_price: decimal(10,2)
         total_amount: decimal(10,2)
+    raw_products:
+      +column_types:
+        product_id: integer
+        unit_price: decimal(10,2)
 
 models:
   name_generator:

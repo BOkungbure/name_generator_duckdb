@@ -56,6 +56,9 @@ try {
     Invoke-Step -Name "Generate $NameRowCount names" -Exe "python" `
         -ArgumentList @("scripts/generate_names.py", "--rows", "$NameRowCount")
 
+    Invoke-Step -Name "Generate product catalog" -Exe "python" `
+        -ArgumentList @("scripts/generate_products.py")
+
     Invoke-Step -Name "Generate $SalesRowCount sales transactions" -Exe "python" `
         -ArgumentList @("scripts/generate_sales_transactions.py", "--rows", "$SalesRowCount")
 

@@ -19,6 +19,14 @@ models:
               arguments:
                 to: ref('stg_names')
                 field: user_id
+      - name: product_id
+        description: "{{ doc('product_id') }}"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
       - name: total_amount
         description: "{{ doc('total_amount') }}"
         tests:

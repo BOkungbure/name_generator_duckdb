@@ -15,9 +15,11 @@ renamed as (
         -- FK -> stg_names.user_id. Every row here represents one purchase
         -- made by that customer.
         user_id,
+        -- FK -> stg_products.product_id. Join to stg_products for
+        -- product_name/category rather than looking them up here, since
+        -- this table only stores the point-in-time price/quantity.
+        product_id,
         order_date,
-        product_name,
-        category,
         quantity,
         unit_price,
         -- unit_price * quantity, computed at generation time; not
