@@ -1,3 +1,6 @@
+-- Legacy DuckDB migration example; not used by the Neon-backed pipeline.
+-- The current loader creates raw.names with user_id from the start.
+--
 -- Migration: add a distinct user_id to the names ("customers") table.
 --
 -- Context: the name_generator sample data originally only had a sequential

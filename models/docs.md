@@ -15,35 +15,31 @@
 # Name Generator → Sales Analytics
 
 This is a **portfolio project** demonstrating an end-to-end analytics
-engineering workflow on a free, local stack: synthetic data generation with
-Python/Faker, a dbt project with staging/mart layering, automated data
-tests, and a daily-scheduled orchestration job — all backed by DuckDB.
+engineering workflow: synthetic data generation with Python/Faker, append-only
+raw data loaded into Neon Postgres, dbt staging/mart models, automated tests,
+and a daily-scheduled orchestration job.
 
 ## Data flow
 
-1. `scripts/generate_names.py` generates fake "customer" records, each with
-   a distinct `user_id` (UUID), and writes them to `seeds/raw_names.csv`.
-2. `scripts/generate_products.py` generates a static product catalog
-   (stock items modeled loosely on Microsoft's Wide World Importers
-   sample), written to `seeds/raw_products.csv`.
-3. `scripts/generate_sales_transactions.py` generates synthetic sales
-   transactions, each referencing a `user_id` from step 1 and a
-   `product_id` from step 2, written to `seeds/raw_sales_transactions.csv`.
-4. `dbt seed` loads all three CSVs into DuckDB as raw tables.
-5. Staging models (`stg_names`, `stg_products`, `stg_sales_transactions`)
-   clean and type the raw data.
-5. Mart models join and aggregate the staging layer into business-facing
+1. `scripts/generate_names.py` generates fake customer records with unique
+   UUIDs and writes a batch to `data/incoming/raw_names.csv`.
+2. `scripts/generate_sales_transactions.py` generates a matching batch that
+   references those customers and the static product catalog.
+3. `scripts/load_to_neon.py` appends both generated batches to the `raw`
+   schema in Neon. Batch dates and row numbers make retries idempotent.
+4. `dbt seed --select raw_products` loads the small, version-controlled
+   product catalog as reference data.
+5. Staging models clean and type the Neon sources and product seed.
+6. Mart models join and aggregate the staging layer into business-facing
    tables: `customer_sales` (row-level join) and `customer_sales_summary`
    (per-customer lifetime value).
 
 ## Where to look
 
-- **Staging models** — see the `staging` folder for 1:1 cleaned views over
-  each raw seed.
+- **Staging models** — see the `staging` folder for cleaned views over the
+  Neon sources and product seed.
 - **Mart models** — see the `marts` folder for the customer/sales join and
   aggregate tables used for analysis.
-- `sql/add_user_id_column.sql` — a standalone SQL migration showing how the
-  `user_id` column was added/backfilled on an existing table.
 
 All data is synthetically generated — no real personal information is used
 anywhere in this project.
@@ -58,8 +54,8 @@ every sales transaction. This is the join key between the customer
 {% enddocs %}
 
 {% docs name_id %}
-Sequential integer primary key from the raw `raw_names` seed row order.
-Not stable across data regenerations — use `user_id` for joins instead.
+Database-generated integer surrogate key for a customer row. Use `user_id`
+for stable customer joins instead.
 {% enddocs %}
 
 {% docs transaction_id %}

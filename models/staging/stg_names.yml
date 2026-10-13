@@ -3,7 +3,7 @@ version: 2
 models:
   - name: stg_names
     description: >
-      Cleaned, typed 1:1 view over the raw_names seed. One row per
+      Cleaned, typed 1:1 view over the raw.names source. One row per
       synthetic customer. This is the "customer dimension" that
       stg_sales_transactions joins against via user_id.
     columns:

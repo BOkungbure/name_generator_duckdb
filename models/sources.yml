@@ -1,0 +1,29 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: Append-only synthetic input batches loaded directly into Neon.
+    tables:
+      - name: names
+        description: Synthetic customers, assigned a database-generated surrogate id.
+        columns:
+          - name: id
+            description: Database-generated customer surrogate key.
+          - name: user_id
+            description: Stable UUID used to join customers to sales transactions.
+          - name: source_batch_id
+            description: Date key identifying the generated input batch.
+          - name: source_row_number
+            description: Row number within the generated input batch.
+      - name: sales_transactions
+        description: Synthetic sales rows appended to Neon by the Python loader.
+        columns:
+          - name: transaction_id
+            description: Database-generated transaction surrogate key.
+          - name: user_id
+            description: Customer UUID associated with this transaction.
+          - name: source_batch_id
+            description: Date key identifying the generated input batch.
+          - name: source_row_number
+            description: Row number within the generated input batch.

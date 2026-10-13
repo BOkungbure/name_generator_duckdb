@@ -1,11 +1,12 @@
 <#
 .SYNOPSIS
-    Daily refresh job for the name_generator_duckdb dbt project.
+    Daily append-and-transform job for the Neon-backed name_generator dbt project.
 
 .DESCRIPTION
-    1. Generates 1000 new fake name records (seeds/raw_names.csv).
-    2. Re-seeds DuckDB with the fresh CSV.
-    3. Runs `dbt build` (run + test) against the DuckDB database.
+    1. Generates 1000 new fake name records (data/incoming/raw_names.csv).
+    2. Generates 5000 matching sales transactions.
+    3. Appends both batches to Neon using an idempotent batch date.
+    4. Refreshes the small static product seed and runs dbt models and tests.
 
     Intended to be triggered every morning by Windows Task Scheduler
     (see scripts/register_scheduled_task.ps1).
@@ -23,6 +24,8 @@ $LogDir          = Join-Path $ProjectDir "logs"
 $LogFile         = Join-Path $LogDir "daily_run.log"
 $NameRowCount    = 1000
 $SalesRowCount   = 5000
+$BatchDate       = Get-Date -Format "yyyy-MM-dd"
+$BatchSeed       = [int]($BatchDate -replace "-", "")
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
@@ -54,19 +57,19 @@ Set-Location $ProjectDir
 Write-Log "===== Daily run started ====="
 try {
     Invoke-Step -Name "Generate $NameRowCount names" -Exe "python" `
-        -ArgumentList @("scripts/generate_names.py", "--rows", "$NameRowCount")
-
-    Invoke-Step -Name "Generate product catalog" -Exe "python" `
-        -ArgumentList @("scripts/generate_products.py")
+        -ArgumentList @("scripts/generate_names.py", "--rows", "$NameRowCount", "--seed", "$BatchSeed", "--batch-date", "$BatchDate")
 
     Invoke-Step -Name "Generate $SalesRowCount sales transactions" -Exe "python" `
-        -ArgumentList @("scripts/generate_sales_transactions.py", "--rows", "$SalesRowCount")
+        -ArgumentList @("scripts/generate_sales_transactions.py", "--rows", "$SalesRowCount", "--seed", "$BatchSeed", "--batch-date", "$BatchDate")
 
-    Invoke-Step -Name "dbt seed" -Exe "dbt" `
-        -ArgumentList @("seed", "--profiles-dir", ".", "--full-refresh")
+    Invoke-Step -Name "Append batch $BatchDate to Neon" -Exe "python" `
+        -ArgumentList @("scripts/load_to_neon.py", "--batch-date", "$BatchDate")
+
+    Invoke-Step -Name "dbt seed static product catalog" -Exe "dbt" `
+        -ArgumentList @("seed", "--select", "raw_products", "--profiles-dir", ".")
 
     Invoke-Step -Name "dbt build" -Exe "dbt" `
-        -ArgumentList @("build", "--profiles-dir", ".")
+        -ArgumentList @("build", "--exclude", "resource_type:seed", "--profiles-dir", ".")
 
     Write-Log "===== Daily run completed successfully ====="
     exit 0

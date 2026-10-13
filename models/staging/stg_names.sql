@@ -1,16 +1,15 @@
--- Staging model: 1:1 cleaned/typed view over the raw_names seed.
+-- Staging model: 1:1 cleaned/typed view over the raw.names source table.
 -- See models/docs.md for column-level documentation (doc blocks).
 with source as (
 
-    select * from {{ ref('raw_names') }}
+    select * from {{ source('raw', 'names') }}
 
 ),
 
 renamed as (
 
     select
-        -- Rename the seed's sequential id to make its role explicit; it is
-        -- NOT a stable join key (use user_id for that).
+        -- Rename the database-generated surrogate key; use user_id for joins.
         id as name_id,
         user_id,
         first_name,
@@ -27,9 +26,9 @@ renamed as (
         country,
         created_at,
         -- Derived column: current age in full years. Recomputed on every
-        -- run, so this value can change over time even if the underlying
-        -- seed data doesn't.
-        date_diff('year', birthdate, current_date) as age
+        -- run, so this value can change over time even if the source data
+        -- doesn't.
+        extract(year from age(current_date, birthdate))::integer as age
 
     from source
 

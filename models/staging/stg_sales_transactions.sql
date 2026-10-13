@@ -1,10 +1,10 @@
--- Staging model: 1:1 cleaned/typed view over the raw_sales_transactions
--- seed. user_id is a foreign key to stg_names.user_id (enforced by the
+-- Staging model: 1:1 cleaned/typed view over the raw.sales_transactions
+-- source. user_id is a foreign key to stg_names.user_id (enforced by the
 -- `relationships` test in stg_sales_transactions.yml).
 -- See models/docs.md for column-level documentation (doc blocks).
 with source as (
 
-    select * from {{ ref('raw_sales_transactions') }}
+    select * from {{ source('raw', 'sales_transactions') }}
 
 ),
 

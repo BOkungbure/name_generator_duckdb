@@ -1,7 +1,7 @@
 """
 Generates a small synthetic product catalog, modeled loosely on the stock
 items in Microsoft's "Wide World Importers" sample, and writes it to
-seeds/raw_products.csv so it can be loaded into DuckDB with `dbt seed`.
+seeds/raw_products.csv so it can be loaded with `dbt seed`.
 
 This is a static reference/dimension table: it does not take --rows, since
 it's meant to represent a fixed catalog of stock items rather than a stream

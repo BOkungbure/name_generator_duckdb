@@ -47,7 +47,7 @@ Register-ScheduledTask -TaskName $TaskName `
     -Action $Action `
     -Trigger $Trigger `
     -Settings $Settings `
-    -Description "Generates 1000 fake names and runs dbt build for name_generator_duckdb every morning." `
+    -Description "Appends synthetic customer and sales data to Neon, then runs dbt for name_generator every morning." `
     -Force
 
 Write-Output "Scheduled task '$TaskName' registered to run daily at $Time."
