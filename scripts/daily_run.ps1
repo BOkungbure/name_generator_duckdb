@@ -56,20 +56,26 @@ Set-Location $ProjectDir
 
 Write-Log "===== Daily run started ====="
 try {
-    Invoke-Step -Name "Generate $NameRowCount names" -Exe "python" `
-        -ArgumentList @("scripts/generate_names.py", "--rows", "$NameRowCount", "--seed", "$BatchSeed", "--batch-date", "$BatchDate")
+    $CondaExe = "C:\ProgramData\anaconda3\Scripts\conda.exe"
+    $DbtEnv   = "C:\Users\Babs\.conda\envs\dbt-env"
 
-    Invoke-Step -Name "Generate $SalesRowCount sales transactions" -Exe "python" `
-        -ArgumentList @("scripts/generate_sales_transactions.py", "--rows", "$SalesRowCount", "--seed", "$BatchSeed", "--batch-date", "$BatchDate")
+    Invoke-Step -Name "Generate $NameRowCount names" -Exe $CondaExe `
+        -ArgumentList @("run", "--no-capture-output", "--prefix", $DbtEnv, "python", "scripts/generate_names.py", "--rows", "$NameRowCount", "--seed", "$BatchSeed", "--batch-date", "$BatchDate")
 
-    Invoke-Step -Name "Append batch $BatchDate to Neon" -Exe "python" `
-        -ArgumentList @("scripts/load_to_neon.py", "--batch-date", "$BatchDate")
+    Invoke-Step -Name "Generate $SalesRowCount sales transactions" -Exe $CondaExe `
+        -ArgumentList @("run", "--no-capture-output", "--prefix", $DbtEnv, "python", "scripts/generate_sales_transactions.py", "--rows", "$SalesRowCount", "--seed", "$BatchSeed", "--batch-date", "$BatchDate")
 
-    Invoke-Step -Name "dbt seed static product catalog" -Exe "dbt" `
-        -ArgumentList @("seed", "--select", "raw_products", "--profiles-dir", ".")
+    Invoke-Step -Name "Append batch $BatchDate to Neon" -Exe $CondaExe `
+        -ArgumentList @("run", "--no-capture-output", "--prefix", $DbtEnv, "python", "scripts/load_to_neon.py", "--batch-date", "$BatchDate")
 
-    Invoke-Step -Name "dbt build" -Exe "dbt" `
-        -ArgumentList @("build", "--exclude", "resource_type:seed", "--profiles-dir", ".")
+    Invoke-Step -Name "dbt seed static product catalog" -Exe $CondaExe `
+        -ArgumentList @("run", "--no-capture-output", "--prefix", $DbtEnv, "dbt", "seed", "--select", "raw_products", "--profiles-dir", ".")
+
+    Invoke-Step -Name "dbt snapshot product catalog" -Exe $CondaExe `
+        -ArgumentList @("run", "--no-capture-output", "--prefix", $DbtEnv, "dbt", "snapshot", "--select", "product_catalog_snapshot", "--profiles-dir", ".")
+
+    Invoke-Step -Name "dbt build" -Exe $CondaExe `
+        -ArgumentList @("run", "--no-capture-output", "--prefix", $DbtEnv, "dbt", "build", "--exclude", "resource_type:seed", "--profiles-dir", ".")
 
     Write-Log "===== Daily run completed successfully ====="
     exit 0

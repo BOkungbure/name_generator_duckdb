@@ -34,6 +34,7 @@ data.
 | `models/sources.yml` | Declares the Neon raw tables as dbt sources |
 | `models/staging/` | Cleaned views over raw Neon sources and the product seed |
 | `models/marts/` | Customer-sales join and summary tables |
+| `snapshots/product_catalog_snapshot.sql` | Preserves product catalog history when its name, category, or price changes |
 | `scripts/daily_run.ps1` | Daily generation, append, seed, dbt build, and logging |
 | `scripts/register_scheduled_task.ps1` | Registers the Windows Task Scheduler job |
 | `profiles.yml` | dbt Postgres profile; credentials are read from environment variables |
@@ -74,8 +75,13 @@ the initial import and keeps generated batches out of dbt's seed inventory:
 dbt seed --select raw_products --profiles-dir .
 $BatchDate = Get-Date -Format "yyyy-MM-dd"
 python .\scripts\load_to_neon.py --batch-date $BatchDate
+dbt snapshot --select product_catalog_snapshot --profiles-dir .
 dbt build --exclude resource_type:seed --profiles-dir .
 ```
+
+The first snapshot run records the current catalog as its baseline. Subsequent
+runs create a new version when `product_name`, `category`, or `unit_price`
+changes. Snapshot history is stored in the `analytics_snapshots` schema.
 
 The loader creates `raw.names` and `raw.sales_transactions` if they do not
 already exist. It inserts customers before their sales, within one database
@@ -89,7 +95,8 @@ loaded data.
 The scheduled job generates 1,000 customers and 5,000 sales transactions.
 Its date-derived random seed makes same-day retries reproducible; later days
 produce distinct customer UUIDs. It appends the batch, refreshes the small
-product seed, then runs dbt models and tests (excluding seeds from the build).
+product seed, snapshots catalog changes, then runs dbt models and tests
+(excluding seeds from the build).
 The run log is `logs/daily_run.log`.
 
 Register the task:
